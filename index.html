@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pixel Emoji Tab Icon Animation</title>
+  <title>Pixel Emoji Tab Icon Animation (Blocky)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
@@ -21,22 +21,23 @@
       gap: 10px;
     }
     .current-mood {
-      font-size: 1.5em;
+      font-size: 1.4em;
       font-weight: bold;
       color: #FFD84C;
       margin-bottom: 0.5em;
-      text-shadow: 2px 2px 6px #333, 0 0 10px #FFD84Ccc;
       user-select: none;
+      text-shadow: 2px 2px 6px #333;
     }
     canvas {
       image-rendering: pixelated;
-      border: 3px solid #FFD84C;
-      border-radius: 10px;
       background: #222;
-      width: 196px;
-      height: 196px;
+      border-radius: 7px;
+      border: 2px solid #FFD84C;
+      width: 160px;
+      height: 160px;
       margin: 5px 0 15px 0;
-      box-shadow: 0 0 30px #FFD84C77;
+      box-shadow: 0 0 18px #FFD84C77;
+      display:block;
     }
     .controls, .tabs {
       margin-top: 10px;
@@ -44,16 +45,16 @@
       color: #ccc;
     }
     .controls button, .tabs button {
-      padding: 8px 16px;
+      padding: 7px 14px;
       margin: 3px;
       background: #35355a;
       border: none;
       color: #fff;
-      border-radius: 7px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 1em;
       font-weight: 500;
-      transition: filter 0.15s;
+      transition: background 0.15s;
     }
     .controls button:hover, .tabs button:hover {
       background: #FFD84C;
@@ -67,19 +68,19 @@
       gap: 5px;
     }
     .tabitem {
-      padding: 6px 14px 6px 10px;
+      padding: 6px 13px 6px 8px;
       margin: 2px;
-      border-radius: 8px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       font-family: monospace;
-      font-size: 1.08em;
+      font-size: 1em;
       font-weight: 600;
-      box-shadow: 0 2px 8px #0007;
+      box-shadow: 0 2px 8px #0006;
       border: 2px solid #FFD84C;
       background: #333;
       color: #FFD84C;
-      gap: 8px;
+      gap: 7px;
     }
     .tabitem.angry { color:#F45555; border-color:#F45555 }
     .tabitem.crying { color:#56B5F2; border-color:#56B5F2 }
@@ -87,13 +88,13 @@
     .tabitem.happy { color:#FFD84C; border-color:#FFD84C }
     .tabitem.neutral { color:#FFB84C; border-color:#FFB84C }
     .tabitem .close {
-      margin-left: 10px;
+      margin-left: 9px;
       color: #F45555;
       font-weight: bold;
       cursor: pointer;
-      font-size: 1.2em;
-      padding: 0 6px;
-      transition: filter 0.2s;
+      font-size: 1.15em;
+      padding: 0 5px;
+      transition: background 0.2s;
     }
     .tabitem .close:hover {
       color:#fff;
@@ -101,23 +102,23 @@
       border-radius:4px;
     }
     .reaction-label {
-      margin-left: 6px;
-      font-size: 0.97em;
+      margin-left: 5px;
+      font-size: 0.91em;
       color: #fff;
       background: #222;
-      border-radius: 5px;
-      padding: 1px 7px;
+      border-radius: 4px;
+      padding: 1px 6px;
       font-weight: 500;
-      border: 1px solid #444;
-      text-shadow: 0 0 8px #222;
-      pointer-events:none;
       letter-spacing:1px;
       user-select:none;
+      pointer-events:none;
+      border: 1px solid #444;
+      text-shadow: 0 0 8px #222;
     }
     @media (max-width:700px) {
-      canvas { width:124px; height:124px;}
-      .current-mood {font-size:1.1em;}
-      .tabitem {font-size:0.9em;}
+      canvas { width:90px; height:90px;}
+      .current-mood {font-size:1em;}
+      .tabitem {font-size:0.85em;}
     }
   </style>
   <link id="favicon" rel="icon" type="image/png" href="">
@@ -125,7 +126,7 @@
 <body>
   <div class="wrap">
     <div class="current-mood" id="currentMoodLabel">😊 Happy</div>
-    <canvas id="emoji" width="48" height="48"></canvas>
+    <canvas id="emoji" width="16" height="16"></canvas>
     <div class="controls">
       <button onclick="setEmotion('happy')">😊 Happy</button>
       <button onclick="setEmotion('neutral')">😐 Neutral</button>
@@ -134,26 +135,23 @@
     </div>
     <div class="tabs">
       <div style="margin-top:7px;">
-        <input type="text" id="newtab" placeholder="Add tab name..." style="padding:5px; font-size:1em; border-radius:5px;">
+        <input type="text" id="newtab" placeholder="Add tab name..." style="padding:5px; font-size:1em; border-radius:4px;">
         <button onclick="addFakeTab()">Add Tab</button>
         <button onclick="removeFakeTab()">Remove Tab</button>
       </div>
-      <div><small>Simulated tabs: &lt; 5 tabs = 😊, &gt; 5 tabs = 😠, contains "slither.io" = 😢</small></div>
+      <div><small>Simulated tabs: &lt; 5 tabs = 😊, &gt; 5 = 😠, contains "slither.io" = 😢</small></div>
       <div class="tablist" id="tablist"></div>
     </div>
   </div>
   <script>
-    // Canvas and emoji rendering
     const canvas = document.getElementById('emoji');
     const ctx = canvas.getContext('2d');
     let emotion = 'happy';
     let tearFrame = 0;
     let lastBlink = performance.now();
-    let blinkState = 0; // 0=open, 1=blink
+    let blinkState = 0;
 
-    // Fake tab system
     let fakeTabs = [];
-
     function setEmotion(em) {
       emotion = em;
       tearFrame = 0;
@@ -163,7 +161,6 @@
       drawEmoji();
       updateMainLabel();
     }
-
     function addFakeTab() {
       const input = document.getElementById('newtab');
       let value = input.value.trim();
@@ -198,7 +195,6 @@
         tablist.appendChild(div);
       });
     }
-
     function getTabMood(tab, tabCount) {
       if (tab.toLowerCase().includes('slither.io')) return 'crying';
       if (tabCount > 5) return 'angry';
@@ -212,9 +208,7 @@
       if (mood === 'happy') return '😊 Happy';
       return mood;
     }
-
     function updateFakeTabsMood() {
-      // Find highest-priority mood in tabs
       if (fakeTabs.some(t => t.toLowerCase().includes('slither.io'))) {
         setEmotion('crying');
       } else if (fakeTabs.length > 5) {
@@ -225,7 +219,6 @@
         setEmotion('happy');
       }
     }
-
     function updateMainLabel() {
       document.getElementById('currentMoodLabel').textContent = `${reactionString(emotion)}`;
       let label = document.getElementById('currentMoodLabel');
@@ -237,93 +230,76 @@
       );
     }
 
-    // More visible pixel emoji: thicker outline, vivid colors, scalable
+    // ultra-pixel (blocky) emoji 16x16
     function blankEmojiBase() {
       const pixels = [];
-      for (let y = 0; y < 48; y++) {
+      for (let y = 0; y < 16; y++) {
         const row = [];
-        for (let x = 0; x < 48; x++) {
-          const dx = x - 24, dy = y - 24;
-          if (dx*dx + dy*dy < 480) {
-            // Border: outer ~2px (thicker circle)
-            if (dx*dx + dy*dy > 410) {
-              row.push('#444'); // outline
-            } else {
-              row.push('#FFD84C'); // face
-            }
+        for (let x = 0; x < 16; x++) {
+          // Approx circle mask
+          const dx = x - 8, dy = y - 8;
+          if (dx*dx + dy*dy < 60) {
+            row.push('#FFD84C'); // face
           } else {
             row.push('transparent');
           }
         }
         pixels.push(row);
       }
+      // Outline (make visually clearer for few pixels)
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) {
+          const dx = x - 8, dy = y - 8;
+          if (dx*dx + dy*dy < 68 && dx*dx + dy*dy > 50) pixels[y][x] = '#444';
+        }
       return pixels;
     }
     function addEyes(pixels, blink=0, cry=false) {
-      // Big "pixels"
-      const eyeColor = blink ? '#FFD84C' : '#222'; // blink => hide
-      // Left eye
-      for (let x = 16; x <= 20; x++) {
-        for (let y = 22; y <= 25; y++) {
-          pixels[y][x] = eyeColor;
-        }
-      }
-      // Right eye
-      for (let x = 27; x <= 31; x++) {
-        for (let y = 22; y <= 25; y++) {
-          pixels[y][x] = eyeColor;
-        }
-      }
-      // Tears (down one pixel at a time)
-      if (cry && !blink) {
-        let cryColor = '#56B5F2';
-        // Left eye tears
-        pixels[26][18] = cryColor;
-        pixels[27][18] = cryColor;
-        if (tearFrame > 0 && tearFrame < 12) {
+      // blocky eyes
+      const eyeColor = blink ? '#FFD84C' : '#222';
+      if (!cry || blink) {
+        pixels[7][5] = eyeColor;
+        pixels[7][10] = eyeColor;
+      } else {
+        pixels[7][5] = '#222';
+        pixels[8][5] = '#56B5F2'; // left tear
+        pixels[7][10] = '#222';
+        pixels[8][10] = '#56B5F2'; // right tear
+        if (tearFrame > 0 && tearFrame < 5) {
           for (let t = 0; t < tearFrame; t++) {
-            if (26+t < 48) pixels[26+t][18] = cryColor;
-          }
-        }
-        // Right eye tears
-        pixels[26][29] = cryColor;
-        pixels[27][29] = cryColor;
-        if (tearFrame > 0 && tearFrame < 12) {
-          for (let t = 0; t < tearFrame; t++) {
-            if (26+t < 48) pixels[26+t][29] = cryColor;
+            if (8 + t < 16) pixels[8 + t][5] = '#56B5F2';
+            if (8 + t < 16) pixels[8 + t][10] = '#56B5F2';
           }
         }
       }
     }
     function addMouth(pixels, mood='neutral') {
-      // mouth position
       if (mood === 'neutral') {
-        for (let x=20; x<=27; x++) pixels[36][x] = '#222';
+        pixels[11][6] = '#222';
+        pixels[11][7] = '#222';
+        pixels[11][8] = '#222';
+        pixels[11][9] = '#222';
       }
       if (mood === 'happy') {
-        pixels[35][21] = '#222';
-        pixels[36][22] = '#222';
-        pixels[37][23] = '#222';
-        pixels[36][24] = '#222';
-        pixels[35][25] = '#222';
-        pixels[36][26] = '#222';
-        pixels[35][27] = '#222';
+        pixels[10][6] = '#222';
+        pixels[11][7] = '#222';
+        pixels[11][8] = '#222';
+        pixels[10][9] = '#222';
       }
       if (mood === 'crying' || mood === 'sad') {
-        for (let x=20; x<=27; x++) pixels[39][x] = '#222';
+        pixels[13][6] = '#222';
+        pixels[13][7] = '#222';
+        pixels[13][8] = '#222';
+        pixels[13][9] = '#222';
       }
       if (mood === 'angry') {
-        // Angry "wobble" mouth
-        pixels[36][21] = '#F45555';
-        pixels[37][22] = '#F45555';
-        pixels[36][23] = '#F45555';
-        pixels[37][24] = '#F45555';
-        pixels[36][25] = '#F45555';
-        pixels[37][26] = '#F45555';
-        pixels[36][27] = '#F45555';
-        // Angry brows
-        for(let x=16;x<=20;x++) pixels[19][x] = '#F45555';
-        for(let x=27;x<=31;x++) pixels[19][x] = '#F45555';
+        pixels[11][6] = '#F45555';
+        pixels[12][7] = '#F45555';
+        pixels[12][8] = '#F45555';
+        pixels[11][9] = '#F45555';
+        // angry brows
+        pixels[6][4] = '#F45555';
+        pixels[6][11] = '#F45555';
       }
     }
     function drawEmoji() {
@@ -338,8 +314,8 @@
       addEyes(pixels, blinkState, emotion==='crying');
       addMouth(pixels, emotion);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let y=0;y<48;y++)
-        for (let x=0;x<48;x++) {
+      for (let y=0;y<16;y++)
+        for (let x=0;x<16;x++) {
           const color = pixels[y][x];
           if(color && color!=='transparent') {
             ctx.fillStyle = color;
@@ -349,25 +325,20 @@
     }
     function updateTears() {
       if (emotion==='crying') {
-        tearFrame = (tearFrame+1)%12;
+        tearFrame = (tearFrame+1)%5;
       } else {
         tearFrame = 0;
       }
     }
-    // Favicon rendering from canvas
     function updateFavicon() {
-      // Draw current emoji to offscreen (scaled) canvas
-      const faviconSize = 48;
       const favCanvas = document.createElement('canvas');
-      favCanvas.width = faviconSize;
-      favCanvas.height = faviconSize;
+      favCanvas.width = 16;
+      favCanvas.height = 16;
       const favCtx = favCanvas.getContext('2d');
-      favCtx.drawImage(canvas, 0, 0, faviconSize, faviconSize);
-      const url = favCanvas.toDataURL("image/png");
+      favCtx.drawImage(canvas, 0, 0, 16, 16);
       let fav = document.getElementById('favicon');
-      fav.href = url;
+      fav.href = favCanvas.toDataURL("image/png");
     }
-    // Main loop
     function mainLoop() {
       updateTears();
       drawEmoji();
@@ -375,7 +346,6 @@
       setTimeout(mainLoop, 200);
     }
 
-    // Initial render
     drawEmoji();
     updateFavicon();
     renderTabs();

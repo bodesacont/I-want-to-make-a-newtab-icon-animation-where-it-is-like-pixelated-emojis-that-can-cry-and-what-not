@@ -125,7 +125,7 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="current-mood" id="currentMoodLabel">😊 Happy</div>
+    <div class="current-mood" id="currentMoodLabel">Happy Emoji</div>
     <canvas id="emoji" width="16" height="16"></canvas>
     <div class="controls">
       <button onclick="setEmotion('happy')">😊 Happy</button>
@@ -150,8 +150,8 @@
     let tearFrame = 0;
     let lastBlink = performance.now();
     let blinkState = 0;
-
     let fakeTabs = [];
+
     function setEmotion(em) {
       emotion = em;
       tearFrame = 0;
@@ -180,6 +180,19 @@
       updateFakeTabsMood();
       renderTabs();
     }
+    function emojiForMood(mood) {
+      if (mood === 'crying') return '😢';
+      if (mood === 'angry') return '😠';
+      if (mood === 'neutral') return '😐';
+      return '😊';
+    }
+    function moodTitle(emotion) {
+      if (emotion === 'crying') return "Crying Emoji";
+      if (emotion === 'angry') return "Angry Emoji";
+      if (emotion === 'neutral') return "Neutral Emoji";
+      if (emotion === 'happy') return "Happy Emoji";
+      return "Pixel Emoji";
+    }
     function renderTabs() {
       const tablist = document.getElementById('tablist');
       tablist.innerHTML = '';
@@ -189,7 +202,8 @@
         div.className = 'tabitem ' + mood;
         div.innerHTML = `
           <span>${tab}</span>
-          <span class="reaction-label">${reactionString(mood)}</span>
+          <span style="font-size:1.2em; margin:0 4px;">${emojiForMood(mood)}</span>
+          <span class="reaction-label">${moodTitle(mood)}</span>
           <span class="close" onclick="closeTab(${i})">&times;</span>
         `;
         tablist.appendChild(div);
@@ -200,13 +214,6 @@
       if (tabCount > 5) return 'angry';
       if (tabCount === 5) return 'neutral';
       return 'happy';
-    }
-    function reactionString(mood) {
-      if (mood === 'crying') return '😢 Sad/Crying';
-      if (mood === 'angry') return '😠 Angry';
-      if (mood === 'neutral') return '😐 Neutral';
-      if (mood === 'happy') return '😊 Happy';
-      return mood;
     }
     function updateFakeTabsMood() {
       if (fakeTabs.some(t => t.toLowerCase().includes('slither.io'))) {
@@ -220,8 +227,8 @@
       }
     }
     function updateMainLabel() {
-      document.getElementById('currentMoodLabel').textContent = `${reactionString(emotion)}`;
-      let label = document.getElementById('currentMoodLabel');
+      const label = document.getElementById('currentMoodLabel');
+      label.textContent = moodTitle(emotion);
       label.style.color = (
         emotion === 'crying' ? '#56B5F2' :
         emotion === 'angry' ? '#F45555' :
@@ -255,7 +262,6 @@
       return pixels;
     }
     function addEyes(pixels, blink=0, cry=false) {
-      // blocky eyes
       const eyeColor = blink ? '#FFD84C' : '#222';
       if (!cry || blink) {
         pixels[7][5] = eyeColor;
@@ -304,7 +310,6 @@
     }
     function drawEmoji() {
       const pixels = blankEmojiBase();
-      // Animate blink every ~2-3 sec randomly
       let now = performance.now();
       if (now - lastBlink > 1700 + Math.random()*1000) {
         blinkState = (blinkState+1)%2;

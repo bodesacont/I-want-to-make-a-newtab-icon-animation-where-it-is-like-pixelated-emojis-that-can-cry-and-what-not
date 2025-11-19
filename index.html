@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pixel Emoji Tab Icon Animation (Blocky)</title>
+  <title>Blocky Pixel Emoji Tab Icon Animation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
@@ -60,6 +60,15 @@
       background: #FFD84C;
       color: #222;
     }
+    .feed-controls {
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .feed-controls button {
+      background: #F99E1A;
+      color: #222;
+      font-weight: bold;
+    }
     .tablist {
       display: flex;
       flex-wrap: wrap;
@@ -85,6 +94,7 @@
     .tabitem.angry { color:#F45555; border-color:#F45555 }
     .tabitem.crying { color:#56B5F2; border-color:#56B5F2 }
     .tabitem.sad { color:#56B5F2; border-color:#56B5F2 }
+    .tabitem.hungry { color:#F99E1A; border-color:#F99E1A }
     .tabitem.happy { color:#FFD84C; border-color:#FFD84C }
     .tabitem.neutral { color:#FFB84C; border-color:#FFB84C }
     .tabitem .close {
@@ -127,11 +137,19 @@
   <div class="wrap">
     <div class="current-mood" id="currentMoodLabel">Happy Emoji</div>
     <canvas id="emoji" width="16" height="16"></canvas>
+    <div class="feed-controls">
+      <button onclick="makeHungry()">😋 Make Hungry (#1)</button>
+      <button onclick="feedIt()">🍔 Feed Emoji (#0)</button>
+      <small>
+        (Emoji is <strong>hungry</strong> if URL hash is <strong>#1</strong>, and <strong>satisfied</strong> if hash is <strong>#0</strong>.)
+      </small>
+    </div>
     <div class="controls">
       <button onclick="setEmotion('happy')">😊 Happy</button>
       <button onclick="setEmotion('neutral')">😐 Neutral</button>
       <button onclick="setEmotion('angry')">😠 Angry</button>
       <button onclick="setEmotion('crying')">😢 Cry/Sad</button>
+      <button onclick="setEmotion('hungry')">😋 Hungry</button>
     </div>
     <div class="tabs">
       <div style="margin-top:7px;">
@@ -139,7 +157,7 @@
         <button onclick="addFakeTab()">Add Tab</button>
         <button onclick="removeFakeTab()">Remove Tab</button>
       </div>
-      <div><small>Simulated tabs: &lt; 5 tabs = 😊, &gt; 5 = 😠, contains "slither.io" = 😢</small></div>
+      <div><small>Simulated tabs: &lt; 5 = 😊, &gt; 5 = 😠, "slither.io" = 😢, hungry if hash=#1</small></div>
       <div class="tablist" id="tablist"></div>
     </div>
   </div>
@@ -152,6 +170,11 @@
     let blinkState = 0;
     let fakeTabs = [];
 
+    // Hunger state tracker (hungry ONLY if hash is "#1")
+    function getHungerFromHash() {
+      return window.location.hash === '#1';
+    }
+
     function setEmotion(em) {
       emotion = em;
       tearFrame = 0;
@@ -161,6 +184,16 @@
       drawEmoji();
       updateMainLabel();
     }
+    function feedIt() {
+      window.location.hash = "#0";
+      updateEmojiMoodFromContext();
+    }
+    function makeHungry() {
+      window.location.hash = "#1";
+      updateEmojiMoodFromContext();
+    }
+    window.addEventListener('hashchange', updateEmojiMoodFromContext);
+
     function addFakeTab() {
       const input = document.getElementById('newtab');
       let value = input.value.trim();
@@ -184,12 +217,14 @@
       if (mood === 'crying') return '😢';
       if (mood === 'angry') return '😠';
       if (mood === 'neutral') return '😐';
+      if (mood === 'hungry') return '😋';
       return '😊';
     }
     function moodTitle(emotion) {
       if (emotion === 'crying') return "Crying Emoji";
       if (emotion === 'angry') return "Angry Emoji";
       if (emotion === 'neutral') return "Neutral Emoji";
+      if (emotion === 'hungry') return "Hungry Emoji";
       if (emotion === 'happy') return "Happy Emoji";
       return "Pixel Emoji";
     }
@@ -210,13 +245,16 @@
       });
     }
     function getTabMood(tab, tabCount) {
+      if (getHungerFromHash()) return 'hungry';
       if (tab.toLowerCase().includes('slither.io')) return 'crying';
       if (tabCount > 5) return 'angry';
       if (tabCount === 5) return 'neutral';
       return 'happy';
     }
     function updateFakeTabsMood() {
-      if (fakeTabs.some(t => t.toLowerCase().includes('slither.io'))) {
+      if (getHungerFromHash()) {
+        setEmotion('hungry');
+      } else if (fakeTabs.some(t => t.toLowerCase().includes('slither.io'))) {
         setEmotion('crying');
       } else if (fakeTabs.length > 5) {
         setEmotion('angry');
@@ -232,9 +270,14 @@
       label.style.color = (
         emotion === 'crying' ? '#56B5F2' :
         emotion === 'angry' ? '#F45555' :
+        emotion === 'hungry' ? '#F99E1A' :
         emotion === 'happy' ? '#FFD84C' :
         emotion === 'neutral' ? '#FFB84C' : '#FFD84C'
       );
+    }
+    function updateEmojiMoodFromContext() {
+      updateFakeTabsMood();
+      renderTabs();
     }
 
     // ultra-pixel (blocky) emoji 16x16
@@ -243,17 +286,17 @@
       for (let y = 0; y < 16; y++) {
         const row = [];
         for (let x = 0; x < 16; x++) {
-          // Approx circle mask
+          // Circle mask
           const dx = x - 8, dy = y - 8;
           if (dx*dx + dy*dy < 60) {
-            row.push('#FFD84C'); // face
+            row.push('#FFD84C');
           } else {
             row.push('transparent');
           }
         }
         pixels.push(row);
       }
-      // Outline (make visually clearer for few pixels)
+      // Outline
       for (let y = 0; y < 16; y++)
         for (let x = 0; x < 16; x++) {
           const dx = x - 8, dy = y - 8;
@@ -261,9 +304,13 @@
         }
       return pixels;
     }
-    function addEyes(pixels, blink=0, cry=false) {
+    function addEyes(pixels, blink, cry, hungry) {
       const eyeColor = blink ? '#FFD84C' : '#222';
-      if (!cry || blink) {
+      if (hungry) {
+        // Big open eyes (maybe a sparkle if you want more styling!)
+        pixels[7][5] = eyeColor;
+        pixels[7][10] = eyeColor;
+      } else if (!cry || blink) {
         pixels[7][5] = eyeColor;
         pixels[7][10] = eyeColor;
       } else {
@@ -279,26 +326,29 @@
         }
       }
     }
-    function addMouth(pixels, mood='neutral') {
-      if (mood === 'neutral') {
+    function addMouth(pixels, mood) {
+      if (mood === 'hungry') {
+        // Big open mouth with "tongue"
+        pixels[13][7] = '#F99E1A';
+        pixels[13][8] = '#F99E1A';
+        pixels[12][7] = '#222';
+        pixels[12][8] = '#222';
+      } else if (mood === 'neutral') {
         pixels[11][6] = '#222';
         pixels[11][7] = '#222';
         pixels[11][8] = '#222';
         pixels[11][9] = '#222';
-      }
-      if (mood === 'happy') {
+      } else if (mood === 'happy') {
         pixels[10][6] = '#222';
         pixels[11][7] = '#222';
         pixels[11][8] = '#222';
         pixels[10][9] = '#222';
-      }
-      if (mood === 'crying' || mood === 'sad') {
+      } else if (mood === 'crying' || mood === 'sad') {
         pixels[13][6] = '#222';
         pixels[13][7] = '#222';
         pixels[13][8] = '#222';
         pixels[13][9] = '#222';
-      }
-      if (mood === 'angry') {
+      } else if (mood === 'angry') {
         pixels[11][6] = '#F45555';
         pixels[12][7] = '#F45555';
         pixels[12][8] = '#F45555';
@@ -309,6 +359,10 @@
       }
     }
     function drawEmoji() {
+      // Current mood might be override by hungry!
+      let mood = emotion;
+      if (getHungerFromHash()) mood = 'hungry';
+
       const pixels = blankEmojiBase();
       let now = performance.now();
       if (now - lastBlink > 1700 + Math.random()*1000) {
@@ -316,8 +370,9 @@
         lastBlink = now;
       }
       if (blinkState && now - lastBlink > 250) blinkState = 0;
-      addEyes(pixels, blinkState, emotion==='crying');
-      addMouth(pixels, emotion);
+
+      addEyes(pixels, blinkState, mood==='crying', mood==='hungry');
+      addMouth(pixels, mood);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let y=0;y<16;y++)
         for (let x=0;x<16;x++) {
@@ -356,6 +411,7 @@
     renderTabs();
     updateMainLabel();
     mainLoop();
+    updateEmojiMoodFromContext();
   </script>
 </body>
 </html>

@@ -12,61 +12,120 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .current-mood {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #FFD84C;
+      margin-bottom: 0.5em;
+      text-shadow: 2px 2px 6px #333, 0 0 10px #FFD84Ccc;
+      user-select: none;
     }
     canvas {
       image-rendering: pixelated;
-      border: 2px solid #333;
-      background: #444;
-      width: 128px;
-      height: 128px;
+      border: 3px solid #FFD84C;
+      border-radius: 10px;
+      background: #222;
+      width: 196px;
+      height: 196px;
+      margin: 5px 0 15px 0;
+      box-shadow: 0 0 30px #FFD84C77;
     }
     .controls, .tabs {
-      margin-top: 16px;
+      margin-top: 10px;
       text-align: center;
       color: #ccc;
     }
     .controls button, .tabs button {
-      padding: 6px 12px;
-      margin: 2px;
+      padding: 8px 16px;
+      margin: 3px;
       background: #35355a;
       border: none;
       color: #fff;
-      border-radius: 4px;
+      border-radius: 7px;
       cursor: pointer;
       font-size: 1em;
+      font-weight: 500;
+      transition: filter 0.15s;
     }
     .controls button:hover, .tabs button:hover {
-      background: #5858a0;
+      background: #FFD84C;
+      color: #222;
     }
     .tablist {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      margin: 6px 0;
+      margin: 8px 0;
+      gap: 5px;
     }
     .tabitem {
-      padding: 2px 8px;
+      padding: 6px 14px 6px 10px;
       margin: 2px;
-      border-radius: 4px;
-      background: #444;
-      border: 1px solid #35355a;
+      border-radius: 8px;
       display: flex;
       align-items: center;
-      color: #FFD84C;
       font-family: monospace;
+      font-size: 1.08em;
+      font-weight: 600;
+      box-shadow: 0 2px 8px #0007;
+      border: 2px solid #FFD84C;
+      background: #333;
+      color: #FFD84C;
+      gap: 8px;
     }
+    .tabitem.angry { color:#F45555; border-color:#F45555 }
+    .tabitem.crying { color:#56B5F2; border-color:#56B5F2 }
+    .tabitem.sad { color:#56B5F2; border-color:#56B5F2 }
+    .tabitem.happy { color:#FFD84C; border-color:#FFD84C }
+    .tabitem.neutral { color:#FFB84C; border-color:#FFB84C }
     .tabitem .close {
-      margin-left: 8px;
-      color: #900;
+      margin-left: 10px;
+      color: #F45555;
       font-weight: bold;
       cursor: pointer;
+      font-size: 1.2em;
+      padding: 0 6px;
+      transition: filter 0.2s;
+    }
+    .tabitem .close:hover {
+      color:#fff;
+      background: #F45555;
+      border-radius:4px;
+    }
+    .reaction-label {
+      margin-left: 6px;
+      font-size: 0.97em;
+      color: #fff;
+      background: #222;
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-weight: 500;
+      border: 1px solid #444;
+      text-shadow: 0 0 8px #222;
+      pointer-events:none;
+      letter-spacing:1px;
+      user-select:none;
+    }
+    @media (max-width:700px) {
+      canvas { width:124px; height:124px;}
+      .current-mood {font-size:1.1em;}
+      .tabitem {font-size:0.9em;}
     }
   </style>
   <link id="favicon" rel="icon" type="image/png" href="">
 </head>
 <body>
-  <div style="display: flex; flex-direction: column; align-items: center;">
-    <canvas id="emoji" width="32" height="32"></canvas>
+  <div class="wrap">
+    <div class="current-mood" id="currentMoodLabel">😊 Happy</div>
+    <canvas id="emoji" width="48" height="48"></canvas>
     <div class="controls">
       <button onclick="setEmotion('happy')">😊 Happy</button>
       <button onclick="setEmotion('neutral')">😐 Neutral</button>
@@ -74,14 +133,12 @@
       <button onclick="setEmotion('crying')">😢 Cry/Sad</button>
     </div>
     <div class="tabs">
-      <div>
-        <input type="text" id="newtab" placeholder="Add tab name..." style="padding:4px; font-size:1em;">
+      <div style="margin-top:7px;">
+        <input type="text" id="newtab" placeholder="Add tab name..." style="padding:5px; font-size:1em; border-radius:5px;">
         <button onclick="addFakeTab()">Add Tab</button>
         <button onclick="removeFakeTab()">Remove Tab</button>
       </div>
-      <div>
-        <small>Simulated tabs: &lt; 5 = happy, &gt; 5 = angry, contains "slither.io" = sad/cry.</small>
-      </div>
+      <div><small>Simulated tabs: &lt; 5 tabs = 😊, &gt; 5 tabs = 😠, contains "slither.io" = 😢</small></div>
       <div class="tablist" id="tablist"></div>
     </div>
   </div>
@@ -104,6 +161,7 @@
       blinkState = 0;
       updateFavicon();
       drawEmoji();
+      updateMainLabel();
     }
 
     function addFakeTab() {
@@ -129,14 +187,34 @@
       const tablist = document.getElementById('tablist');
       tablist.innerHTML = '';
       fakeTabs.forEach((tab, i) => {
+        const mood = getTabMood(tab, fakeTabs.length);
         const div = document.createElement('div');
-        div.className = 'tabitem';
-        div.innerHTML = tab + ' <span class="close" onclick="closeTab(' + i + ')">&times;</span>';
+        div.className = 'tabitem ' + mood;
+        div.innerHTML = `
+          <span>${tab}</span>
+          <span class="reaction-label">${reactionString(mood)}</span>
+          <span class="close" onclick="closeTab(${i})">&times;</span>
+        `;
         tablist.appendChild(div);
       });
     }
 
+    function getTabMood(tab, tabCount) {
+      if (tab.toLowerCase().includes('slither.io')) return 'crying';
+      if (tabCount > 5) return 'angry';
+      if (tabCount === 5) return 'neutral';
+      return 'happy';
+    }
+    function reactionString(mood) {
+      if (mood === 'crying') return '😢 Sad/Crying';
+      if (mood === 'angry') return '😠 Angry';
+      if (mood === 'neutral') return '😐 Neutral';
+      if (mood === 'happy') return '😊 Happy';
+      return mood;
+    }
+
     function updateFakeTabsMood() {
+      // Find highest-priority mood in tabs
       if (fakeTabs.some(t => t.toLowerCase().includes('slither.io'))) {
         setEmotion('crying');
       } else if (fakeTabs.length > 5) {
@@ -148,15 +226,31 @@
       }
     }
 
+    function updateMainLabel() {
+      document.getElementById('currentMoodLabel').textContent = `${reactionString(emotion)}`;
+      let label = document.getElementById('currentMoodLabel');
+      label.style.color = (
+        emotion === 'crying' ? '#56B5F2' :
+        emotion === 'angry' ? '#F45555' :
+        emotion === 'happy' ? '#FFD84C' :
+        emotion === 'neutral' ? '#FFB84C' : '#FFD84C'
+      );
+    }
+
+    // More visible pixel emoji: thicker outline, vivid colors, scalable
     function blankEmojiBase() {
       const pixels = [];
-      for (let y = 0; y < 32; y++) {
+      for (let y = 0; y < 48; y++) {
         const row = [];
-        for (let x = 0; x < 32; x++) {
-          // Circle mask
-          const dx = x - 16, dy = y - 16;
-          if (dx*dx + dy*dy < 230) {
-            row.push('#FFD84C'); // yellow face
+        for (let x = 0; x < 48; x++) {
+          const dx = x - 24, dy = y - 24;
+          if (dx*dx + dy*dy < 480) {
+            // Border: outer ~2px (thicker circle)
+            if (dx*dx + dy*dy > 410) {
+              row.push('#444'); // outline
+            } else {
+              row.push('#FFD84C'); // face
+            }
           } else {
             row.push('transparent');
           }
@@ -166,42 +260,70 @@
       return pixels;
     }
     function addEyes(pixels, blink=0, cry=false) {
-      const eyeColor = blink ? '#FFD84C' : '#333'; // blink => face color (hidden)
-      for (let x = 9; x <= 12; x++) {
-        pixels[14][x] = eyeColor;
-        if (cry && !blink) pixels[15][x] = '#87CEEB';
+      // Big "pixels"
+      const eyeColor = blink ? '#FFD84C' : '#222'; // blink => hide
+      // Left eye
+      for (let x = 16; x <= 20; x++) {
+        for (let y = 22; y <= 25; y++) {
+          pixels[y][x] = eyeColor;
+        }
       }
-      for (let x = 19; x <= 22; x++) {
-        pixels[14][x] = eyeColor;
-        if (cry && !blink) pixels[15][x] = '#87CEEB';
+      // Right eye
+      for (let x = 27; x <= 31; x++) {
+        for (let y = 22; y <= 25; y++) {
+          pixels[y][x] = eyeColor;
+        }
       }
-      // Tears going down
-      if (cry && !blink && tearFrame > 0) {
-        for (let x = 10; x <= 11; x++) pixels[14+tearFrame][x] = '#87CEEB';
-        for (let x = 20; x <= 21; x++) pixels[14+tearFrame][x] = '#87CEEB';
+      // Tears (down one pixel at a time)
+      if (cry && !blink) {
+        let cryColor = '#56B5F2';
+        // Left eye tears
+        pixels[26][18] = cryColor;
+        pixels[27][18] = cryColor;
+        if (tearFrame > 0 && tearFrame < 12) {
+          for (let t = 0; t < tearFrame; t++) {
+            if (26+t < 48) pixels[26+t][18] = cryColor;
+          }
+        }
+        // Right eye tears
+        pixels[26][29] = cryColor;
+        pixels[27][29] = cryColor;
+        if (tearFrame > 0 && tearFrame < 12) {
+          for (let t = 0; t < tearFrame; t++) {
+            if (26+t < 48) pixels[26+t][29] = cryColor;
+          }
+        }
       }
     }
-    function addMouth(pixels, emotion='neutral') {
-      if (emotion === 'neutral') {
-        for (let x=13; x<=18; x++) pixels[22][x] = '#333';
+    function addMouth(pixels, mood='neutral') {
+      // mouth position
+      if (mood === 'neutral') {
+        for (let x=20; x<=27; x++) pixels[36][x] = '#222';
       }
-      if (emotion === 'happy') {
-        pixels[21][14] = '#333';
-        pixels[22][15] = '#333';
-        pixels[23][16] = '#333';
-        pixels[22][17] = '#333';
-        pixels[21][18] = '#333';
+      if (mood === 'happy') {
+        pixels[35][21] = '#222';
+        pixels[36][22] = '#222';
+        pixels[37][23] = '#222';
+        pixels[36][24] = '#222';
+        pixels[35][25] = '#222';
+        pixels[36][26] = '#222';
+        pixels[35][27] = '#222';
       }
-      if (emotion === 'crying' || emotion === 'sad') {
-        for (let x=13; x<=18; x++) pixels[23][x] = '#333';
+      if (mood === 'crying' || mood === 'sad') {
+        for (let x=20; x<=27; x++) pixels[39][x] = '#222';
       }
-      if (emotion === 'angry') {
-        pixels[21][14] = '#333';
-        pixels[22][15] = '#333';
-        pixels[21][18] = '#333';
-        pixels[22][17] = '#333';
-        for(let x=9;x<=12;x++) pixels[12][x] = '#900'; // left brow
-        for(let x=20;x<=23;x++) pixels[12][x] = '#900'; // right brow
+      if (mood === 'angry') {
+        // Angry "wobble" mouth
+        pixels[36][21] = '#F45555';
+        pixels[37][22] = '#F45555';
+        pixels[36][23] = '#F45555';
+        pixels[37][24] = '#F45555';
+        pixels[36][25] = '#F45555';
+        pixels[37][26] = '#F45555';
+        pixels[36][27] = '#F45555';
+        // Angry brows
+        for(let x=16;x<=20;x++) pixels[19][x] = '#F45555';
+        for(let x=27;x<=31;x++) pixels[19][x] = '#F45555';
       }
     }
     function drawEmoji() {
@@ -215,9 +337,9 @@
       if (blinkState && now - lastBlink > 250) blinkState = 0;
       addEyes(pixels, blinkState, emotion==='crying');
       addMouth(pixels, emotion);
-      ctx.clearRect(0, 0, 32, 32);
-      for (let y=0;y<32;y++)
-        for (let x=0;x<32;x++) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y=0;y<48;y++)
+        for (let x=0;x<48;x++) {
           const color = pixels[y][x];
           if(color && color!=='transparent') {
             ctx.fillStyle = color;
@@ -227,16 +349,15 @@
     }
     function updateTears() {
       if (emotion==='crying') {
-        tearFrame = (tearFrame+1)%10;
+        tearFrame = (tearFrame+1)%12;
       } else {
         tearFrame = 0;
       }
     }
-
     // Favicon rendering from canvas
     function updateFavicon() {
       // Draw current emoji to offscreen (scaled) canvas
-      const faviconSize = 32;
+      const faviconSize = 48;
       const favCanvas = document.createElement('canvas');
       favCanvas.width = faviconSize;
       favCanvas.height = faviconSize;
@@ -246,7 +367,6 @@
       let fav = document.getElementById('favicon');
       fav.href = url;
     }
-
     // Main loop
     function mainLoop() {
       updateTears();
@@ -259,6 +379,7 @@
     drawEmoji();
     updateFavicon();
     renderTabs();
+    updateMainLabel();
     mainLoop();
   </script>
 </body>

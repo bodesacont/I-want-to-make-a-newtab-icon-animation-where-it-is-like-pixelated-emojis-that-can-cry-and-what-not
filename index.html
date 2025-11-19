@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pixelated Emoji Icon Animation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      image-rendering: pixelated;
+      border: 2px solid #333;
+      background: #444;
+      width: 128px;
+      height: 128px;
+    }
+    .controls {
+      margin-top: 16px;
+      text-align: center;
+      color: #ccc;
+    }
+    .controls button {
+      padding: 6px 12px;
+      margin: 2px;
+      background: #35355a;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .controls button:hover {
+      background: #5858a0;
+    }
+  </style>
+</head>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center;">
+    <canvas id="emoji" width="32" height="32"></canvas>
+    <div class="controls">
+      <button onclick="setEmotion('neutral')">Neutral</button>
+      <button onclick="setEmotion('crying')">Cry</button>
+      <button onclick="setEmotion('happy')">Happy</button>
+      <button onclick="setEmotion('angry')">Angry</button>
+    </div>
+  </div>
+  <script>
+    // Size definitions
+    const pixelSize = 4; // actual pixel block size for rendering (scaling up canvas)
+    const canvas = document.getElementById('emoji');
+    const ctx = canvas.getContext('2d');
+
+    // Emoji pixel data definitions (each as 32x32 pixel grid)
+    // Each emoji is a 2D array of colors
+    // For brevity, we'll define "neutral" and modify by emotion
+
+    function blankEmojiBase() {
+      // Face outline + fill
+      const pixels = [];
+      for (let y = 0; y < 32; y++) {
+        const row = [];
+        for (let x = 0; x < 32; x++) {
+          // Circle mask
+          const dx = x - 16, dy = y - 16;
+          if (dx*dx + dy*dy < 230) {
+            row.push('#FFD84C'); // yellow face
+          } else {
+            row.push('transparent');
+          }
+        }
+        pixels.push(row);
+      }
+      return pixels;
+    }
+
+    function addEyes(pixels, blink=0, cry=false) {
+      // Adds neutral/happy eyes
+      // Eyes positions
+      const eyeColor = blink ? '#FFD84C' : '#333'; // blink => face color (hidden)
+      for (let x = 9; x <= 12; x++) {
+        pixels[14][x] = eyeColor; // left eye
+        if (cry && !blink) pixels[15][x] = '#87CEEB';
+      }
+      for (let x = 19; x <= 22; x++) {
+        pixels[14][x] = eyeColor; // right eye
+        if (cry && !blink) pixels[15][x] = '#87CEEB'; // teardrop (simple)
+      }
+      // Tears going down
+      if (cry && !blink && tearFrame > 0) {
+        for (let x = 10; x <= 11; x++) pixels[14+tearFrame][x] = '#87CEEB';
+        for (let x = 20; x <= 21; x++) pixels[14+tearFrame][x] = '#87CEEB';
+      }
+    }
+
+    function addMouth(pixels, emotion='neutral') {
+      // mouth position
+      if (emotion === 'neutral') {
+        for (let x=13; x<=18; x++) pixels[22][x] = '#333';
+      }
+      if (emotion === 'happy') {
+        pixels[21][14] = '#333';
+        pixels[22][15] = '#333';
+        pixels[23][16] = '#333';
+        pixels[22][17] = '#333';
+        pixels[21][18] = '#333';
+      }
+      if (emotion === 'crying') {
+        for (let x=13; x<=18; x++) pixels[23][x] = '#333';
+      }
+      if (emotion === 'angry') {
+        pixels[21][14] = '#333';
+        pixels[22][15] = '#333';
+        pixels[21][18] = '#333';
+        pixels[22][17] = '#333';
+        // angry brows
+        for(let x=9;x<=12;x++) pixels[12][x] = '#900'; // left brow
+        for(let x=20;x<=23;x++) pixels[12][x] = '#900'; // right brow
+      }
+    }
+
+    let emotion = 'neutral';
+    function setEmotion(e) {
+      emotion = e;
+      tearFrame = 0; // reset tears
+      lastBlink = performance.now();
+      blinkState = 0;
+    }
+
+    // Animation state
+    let tearFrame = 0;
+    let lastBlink = performance.now();
+    let blinkState = 0; // 0=open, 1=blink
+
+    function drawEmoji() {
+      const pixels = blankEmojiBase();
+
+      // Animate blink every ~2-3 sec randomly
+      let now = performance.now();
+      if (now - lastBlink > 1700 + Math.random()*1000) {
+        blinkState = (blinkState+1)%2;
+        lastBlink = now;
+      }
+      // Blinking is fast
+      if (blinkState && now - lastBlink > 250) blinkState = 0;
+
+      addEyes(pixels, blinkState, emotion==='crying'); // if crying, add tears
+      addMouth(pixels, emotion);
+
+      // Draw pixels to canvas
+      ctx.clearRect(0, 0, 32, 32);
+      for (let y=0;y<32;y++)
+        for (let x=0;x<32;x++) {
+          const color = pixels[y][x];
+          if(color && color!=='transparent') {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, 1, 1); // single pixel
+          }
+        }
+    }
+
+    // Animate tears downwards
+    function updateTears() {
+      if (emotion==='crying') {
+        tearFrame = (tearFrame+1)%10;
+      } else {
+        tearFrame = 0; // reset
+      }
+    }
+
+    // Animation loop
+    setInterval(()=>{
+      updateTears();
+      drawEmoji();
+    }, 200);
+  </script>
+</body>
+</html>
